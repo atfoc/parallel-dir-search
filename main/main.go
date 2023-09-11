@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync"
 )
 
 func main() {
@@ -12,9 +13,12 @@ func main() {
 
 type UnboundedQueue struct {
 	data []string
+	lock sync.Mutex
 }
 
 func (q *UnboundedQueue) Pop() (data string, ok bool) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	if !q.hasMore() {
 		return "", false
 	}
@@ -29,7 +33,9 @@ func (q *UnboundedQueue) hasMore() bool {
 }
 
 func (q *UnboundedQueue) Push(name string) {
+	q.lock.Lock()
 	q.data = append(q.data, name)
+	q.lock.Unlock()
 }
 
 func ListDirectoryRecursivelyParallel(baseDir string) {
