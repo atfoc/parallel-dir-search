@@ -24,13 +24,6 @@ func (q *UnboundedQueue) Pop() string {
 	return result
 }
 
-func (q *UnboundedQueue) HasMore() bool {
-	q.init()
-	q.cond.L.Lock()
-	defer q.cond.L.Unlock()
-	return q.hasMore()
-}
-
 func (q *UnboundedQueue) Push(name string) {
 	q.init()
 	q.cond.L.Lock()

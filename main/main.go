@@ -39,7 +39,7 @@ func ListDirectoryRecursivelyParallel(baseDir string) {
 	dirsToProcess := unboundedqueue.UnboundedQueue{}
 
 	waitGroup := sync.WaitGroup{}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 20; i++ {
 		go listDirWorker(&dirsToProcess, &waitGroup)
 	}
 
