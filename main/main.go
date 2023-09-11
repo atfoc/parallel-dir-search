@@ -36,11 +36,11 @@ func listDirWorker(dirsToProcess *unboundedqueue.UnboundedQueue, waitGroup *sync
 }
 
 func ListDirectoryRecursivelyParallel(baseDir string) {
-	dirsToProcess := unboundedqueue.UnboundedQueue{}
+	dirsToProcess := unboundedqueue.New()
 
 	waitGroup := sync.WaitGroup{}
 	for i := 0; i < 20; i++ {
-		go listDirWorker(&dirsToProcess, &waitGroup)
+		go listDirWorker(dirsToProcess, &waitGroup)
 	}
 
 	dirsToProcess.Push(baseDir)

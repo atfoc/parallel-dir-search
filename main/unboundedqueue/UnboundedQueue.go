@@ -1,6 +1,9 @@
 package unboundedqueue
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
 
 type UnboundedQueue struct {
 	data []string
@@ -12,12 +15,12 @@ func (q *UnboundedQueue) hasMore() bool {
 }
 
 func (q *UnboundedQueue) Pop() string {
-	q.init()
+	q.failIfNotInitialized()
 	q.cond.L.Lock()
+	defer q.cond.L.Unlock()
 	for !q.hasMore() {
 		q.cond.Wait()
 	}
-	defer q.cond.L.Unlock()
 	result := q.data[0]
 	q.data = q.data[1:]
 
@@ -25,7 +28,7 @@ func (q *UnboundedQueue) Pop() string {
 }
 
 func (q *UnboundedQueue) Push(name string) {
-	q.init()
+	q.failIfNotInitialized()
 	q.cond.L.Lock()
 	q.data = append(q.data, name)
 	q.cond.Broadcast()
@@ -33,7 +36,7 @@ func (q *UnboundedQueue) Push(name string) {
 }
 
 func (q *UnboundedQueue) PushAll(names []string) {
-	q.init()
+	q.failIfNotInitialized()
 	q.cond.L.Lock()
 	for _, el := range names {
 		q.data = append(q.data, el)
@@ -42,10 +45,12 @@ func (q *UnboundedQueue) PushAll(names []string) {
 	q.cond.L.Unlock()
 }
 
-func (q *UnboundedQueue) init() {
-	if q.cond != nil {
-		return
+func (q *UnboundedQueue) failIfNotInitialized() {
+	if q.cond == nil {
+		panic(errors.New("struct UnboundedQueue not initialized"))
 	}
+}
 
-	q.cond = sync.NewCond(&sync.Mutex{})
+func New() *UnboundedQueue {
+	return &UnboundedQueue{cond: sync.NewCond(&sync.Mutex{})}
 }
