@@ -14,19 +14,20 @@ func main() {
 
 type UnboundedQueue struct {
 	data []string
-	lock sync.Mutex
+	cond *sync.Cond
 }
 
-func (q *UnboundedQueue) Pop() (data string, ok bool) {
-	q.lock.Lock()
-	defer q.lock.Unlock()
-	if !q.hasMore() {
-		return "", false
+func (q *UnboundedQueue) Pop() string {
+	q.init()
+	q.cond.L.Lock()
+	defer q.cond.L.Unlock()
+	for !q.hasMore() {
+		q.cond.Wait()
 	}
-
 	result := q.data[0]
 	q.data = q.data[1:]
-	return result, true
+
+	return result
 }
 
 func (q *UnboundedQueue) hasMore() bool {
@@ -34,9 +35,19 @@ func (q *UnboundedQueue) hasMore() bool {
 }
 
 func (q *UnboundedQueue) Push(name string) {
-	q.lock.Lock()
+	q.init()
+	q.cond.L.Lock()
 	q.data = append(q.data, name)
-	q.lock.Unlock()
+	q.cond.Broadcast()
+	q.cond.L.Unlock()
+}
+
+func (q *UnboundedQueue) init() {
+	if q.cond != nil {
+		return
+	}
+
+	q.cond = sync.NewCond(&sync.Mutex{})
 }
 
 func ListDirectoryRecursivelyParallel(baseDir string) {
@@ -52,10 +63,7 @@ func ListDirectoryRecursivelyParallel(baseDir string) {
 
 func listDirWorker(dirsToProcess *UnboundedQueue) {
 	for {
-		dir, ok := dirsToProcess.Pop()
-		if !ok {
-			continue
-		}
+		dir := dirsToProcess.Pop()
 
 		dirContents, err := os.ReadDir(dir)
 		if err != nil {
