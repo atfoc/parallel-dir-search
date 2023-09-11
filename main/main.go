@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"sync"
-	"time"
 )
 
 func main() {
@@ -53,17 +52,19 @@ func (q *UnboundedQueue) init() {
 func ListDirectoryRecursivelyParallel(baseDir string) {
 	dirsToProcess := UnboundedQueue{}
 
+	waitGroup := sync.WaitGroup{}
 	for i := 0; i < 1000; i++ {
-		go listDirWorker(&dirsToProcess)
+		go listDirWorker(&dirsToProcess, &waitGroup)
 	}
 
 	dirsToProcess.Push(baseDir)
-	time.Sleep(time.Second * 10)
+	waitGroup.Wait()
 }
 
-func listDirWorker(dirsToProcess *UnboundedQueue) {
+func listDirWorker(dirsToProcess *UnboundedQueue, waitGroup *sync.WaitGroup) {
 	for {
 		dir := dirsToProcess.Pop()
+		waitGroup.Add(1)
 
 		dirContents, err := os.ReadDir(dir)
 		if err != nil {
@@ -77,5 +78,6 @@ func listDirWorker(dirsToProcess *UnboundedQueue) {
 				dirsToProcess.Push(singleDirName)
 			}
 		}
+		waitGroup.Done()
 	}
 }
