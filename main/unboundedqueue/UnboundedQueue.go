@@ -35,16 +35,6 @@ func (q *UnboundedQueue) Push(name string) {
 	q.cond.L.Unlock()
 }
 
-func (q *UnboundedQueue) PushAll(names []string) {
-	q.failIfNotInitialized()
-	q.cond.L.Lock()
-	for _, el := range names {
-		q.data = append(q.data, el)
-	}
-	q.cond.Broadcast()
-	q.cond.L.Unlock()
-}
-
 func (q *UnboundedQueue) failIfNotInitialized() {
 	if q.cond == nil {
 		panic(errors.New("struct UnboundedQueue not initialized"))

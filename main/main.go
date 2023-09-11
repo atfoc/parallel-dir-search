@@ -21,16 +21,14 @@ func listDirWorker(dirsToProcess *unboundedqueue.UnboundedQueue, waitGroup *sync
 			panic(err)
 		}
 
-		var dirs []string
 		for _, singleDir := range dirContents {
 			singleDirName := path.Join(dir, singleDir.Name())
 			fmt.Println(singleDirName)
 			if singleDir.IsDir() {
-				dirs = append(dirs, singleDirName)
+				dirsToProcess.Push(singleDirName)
+				waitGroup.Add(1)
 			}
 		}
-		dirsToProcess.PushAll(dirs)
-		waitGroup.Add(len(dirs))
 		waitGroup.Done()
 	}
 }
@@ -39,7 +37,7 @@ func ListDirectoryRecursivelyParallel(baseDir string) {
 	dirsToProcess := unboundedqueue.New()
 
 	waitGroup := sync.WaitGroup{}
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 10; i++ {
 		go listDirWorker(dirsToProcess, &waitGroup)
 	}
 
