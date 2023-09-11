@@ -10,13 +10,33 @@ func main() {
 	ListDirectoryRecursivelyParallel("../..")
 }
 
+type UnboundedQueue struct {
+	data []string
+}
+
+func (q *UnboundedQueue) Pop() (data string, ok bool) {
+	if !q.hasMore() {
+		return "", false
+	}
+
+	result := q.data[0]
+	q.data = q.data[1:]
+	return result, true
+}
+
+func (q *UnboundedQueue) hasMore() bool {
+	return len(q.data) > 0
+}
+
+func (q *UnboundedQueue) Push(name string) {
+	q.data = append(q.data, name)
+}
+
 func ListDirectoryRecursivelyParallel(baseDir string) {
-	dirsToProcess := []string{baseDir}
+	dirsToProcess := UnboundedQueue{}
+	dirsToProcess.Push(baseDir)
 
-	for len(dirsToProcess) > 0 {
-		dir := dirsToProcess[0]
-		dirsToProcess = dirsToProcess[1:]
-
+	for dir, ok := dirsToProcess.Pop(); ok; dir, ok = dirsToProcess.Pop() {
 		dirContents, err := os.ReadDir(dir)
 		if err != nil {
 			panic(err)
@@ -26,7 +46,7 @@ func ListDirectoryRecursivelyParallel(baseDir string) {
 			singleDirName := path.Join(dir, singleDir.Name())
 			fmt.Println(singleDirName)
 			if singleDir.IsDir() {
-				dirsToProcess = append(dirsToProcess, singleDirName)
+				dirsToProcess.Push(singleDirName)
 			}
 		}
 	}
