@@ -14,10 +14,10 @@ func (q *UnboundedQueue) hasMore() bool {
 func (q *UnboundedQueue) Pop() string {
 	q.init()
 	q.cond.L.Lock()
-	defer q.cond.L.Unlock()
 	for !q.hasMore() {
 		q.cond.Wait()
 	}
+	defer q.cond.L.Unlock()
 	result := q.data[0]
 	q.data = q.data[1:]
 
