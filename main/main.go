@@ -5,10 +5,11 @@ import (
 	"os"
 	"path"
 	"sync"
+	"time"
 )
 
 func main() {
-	ListDirectoryRecursivelyParallel("../..")
+	ListDirectoryRecursivelyParallel("/Users/pedjat/Documents")
 }
 
 type UnboundedQueue struct {
@@ -40,9 +41,22 @@ func (q *UnboundedQueue) Push(name string) {
 
 func ListDirectoryRecursivelyParallel(baseDir string) {
 	dirsToProcess := UnboundedQueue{}
-	dirsToProcess.Push(baseDir)
 
-	for dir, ok := dirsToProcess.Pop(); ok; dir, ok = dirsToProcess.Pop() {
+	for i := 0; i < 1000; i++ {
+		go listDirWorker(&dirsToProcess)
+	}
+
+	dirsToProcess.Push(baseDir)
+	time.Sleep(time.Second * 10)
+}
+
+func listDirWorker(dirsToProcess *UnboundedQueue) {
+	for {
+		dir, ok := dirsToProcess.Pop()
+		if !ok {
+			continue
+		}
+
 		dirContents, err := os.ReadDir(dir)
 		if err != nil {
 			panic(err)
