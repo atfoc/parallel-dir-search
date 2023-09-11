@@ -29,6 +29,13 @@ func (q *UnboundedQueue) Pop() string {
 	return result
 }
 
+func (q *UnboundedQueue) HasMore() bool {
+	q.init()
+	q.cond.L.Lock()
+	defer q.cond.L.Unlock()
+	return q.hasMore()
+}
+
 func (q *UnboundedQueue) hasMore() bool {
 	return len(q.data) > 0
 }
@@ -37,6 +44,16 @@ func (q *UnboundedQueue) Push(name string) {
 	q.init()
 	q.cond.L.Lock()
 	q.data = append(q.data, name)
+	q.cond.Broadcast()
+	q.cond.L.Unlock()
+}
+
+func (q *UnboundedQueue) PushAll(names []string) {
+	q.init()
+	q.cond.L.Lock()
+	for _, el := range names {
+		q.data = append(q.data, el)
+	}
 	q.cond.Broadcast()
 	q.cond.L.Unlock()
 }
@@ -58,26 +75,29 @@ func ListDirectoryRecursivelyParallel(baseDir string) {
 	}
 
 	dirsToProcess.Push(baseDir)
+	waitGroup.Add(1)
 	waitGroup.Wait()
 }
 
 func listDirWorker(dirsToProcess *UnboundedQueue, waitGroup *sync.WaitGroup) {
 	for {
 		dir := dirsToProcess.Pop()
-		waitGroup.Add(1)
 
 		dirContents, err := os.ReadDir(dir)
 		if err != nil {
 			panic(err)
 		}
 
+		var dirs []string
 		for _, singleDir := range dirContents {
 			singleDirName := path.Join(dir, singleDir.Name())
 			fmt.Println(singleDirName)
 			if singleDir.IsDir() {
-				dirsToProcess.Push(singleDirName)
+				dirs = append(dirs, singleDirName)
 			}
 		}
+		dirsToProcess.PushAll(dirs)
+		waitGroup.Add(len(dirs))
 		waitGroup.Done()
 	}
 }
