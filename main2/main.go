@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"main/unboundedqueue"
 	"os"
 	"path"
 	"sync"
@@ -12,36 +11,40 @@ func main() {
 	ListDirectoryRecursivelyParallel("/Users/pedjat/Documents")
 }
 
-func listDirWorker(dirsToProcess *unboundedqueue.UnboundedQueue, waitGroup *sync.WaitGroup) {
+func listDirWorker(input chan []string, waitGroup *sync.WaitGroup) {
 	for {
-		dir := dirsToProcess.Pop()
+		dirs := <-input
 
-		dirContents, err := os.ReadDir(dir)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, singleDir := range dirContents {
-			singleDirName := path.Join(dir, singleDir.Name())
-			fmt.Println(singleDirName)
-			if singleDir.IsDir() {
-				dirsToProcess.Push(singleDirName)
-				waitGroup.Add(1)
+		var dirsToAdd []string
+		for _, dir := range dirs {
+			dirContents, err := os.ReadDir(dir)
+			if err != nil {
+				panic(err)
 			}
+
+			for _, singleDir := range dirContents {
+				singleDirName := path.Join(dir, singleDir.Name())
+				fmt.Println(singleDirName)
+				if singleDir.IsDir() {
+					dirsToAdd = append(dirsToAdd, singleDirName)
+					waitGroup.Add(1)
+				}
+			}
+			waitGroup.Done()
 		}
-		waitGroup.Done()
+		input <- dirsToAdd
 	}
 }
 
 func ListDirectoryRecursivelyParallel(baseDir string) {
-	dirsToProcess := unboundedqueue.New()
-
 	waitGroup := sync.WaitGroup{}
-	for i := 0; i < 10; i++ {
-		go listDirWorker(dirsToProcess, &waitGroup)
+	numberOfWorkers := 10
+	input := make(chan []string, numberOfWorkers)
+	for i := 0; i < numberOfWorkers; i++ {
+		go listDirWorker(input, &waitGroup)
 	}
 
-	dirsToProcess.Push(baseDir)
+	input <- []string{baseDir}
 	waitGroup.Add(1)
 	waitGroup.Wait()
 }
