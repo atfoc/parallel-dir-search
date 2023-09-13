@@ -22,6 +22,7 @@ func listDirWorker(dirsToProcess *unboundedqueue.UnboundedQueue, waitGroup *sync
 		dirContents, err := os.ReadDir(dir)
 		if err != nil {
 			errorLogger.Printf("Failed reading dir %s with error %s\n", dir, err.Error())
+			continue
 		}
 
 		for _, singleDir := range dirContents {
