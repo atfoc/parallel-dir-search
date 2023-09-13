@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"main/unboundedqueue"
 	"os"
 	"path"
 	"sync"
 )
+
+var errorLogger = log.New(os.Stderr, "", 0)
 
 func main() {
 	ListDirectoryRecursivelyParallel("/Users/pedjat/Documents")
@@ -18,7 +21,7 @@ func listDirWorker(dirsToProcess *unboundedqueue.UnboundedQueue, waitGroup *sync
 
 		dirContents, err := os.ReadDir(dir)
 		if err != nil {
-			panic(err)
+			errorLogger.Printf("Failed reading dir %s with error %s\n", dir, err.Error())
 		}
 
 		for _, singleDir := range dirContents {
