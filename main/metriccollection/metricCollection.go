@@ -2,10 +2,12 @@ package metriccollection
 
 import (
 	"strings"
+	"sync"
 )
 
 type MetricCollection struct {
 	metrics map[string]metricInstance
+	mutex   sync.Mutex
 }
 
 type metricInstance struct {
@@ -21,48 +23,48 @@ type Metric struct {
 }
 
 func (c *MetricCollection) Inc(metric Metric, labelValues []string, amount int) {
-	c.init()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	// todo handle error if not all values have been provided
-	// todo make it thread safe
 	key := buildKey(metric, labelValues)
-	oldMetricValue, ok := c.metrics[key]
+	oldMetricValue, ok := c.getMetric(key)
 	if !ok {
 		oldMetricValue = newMetricInstance(metric, labelValues)
 	}
 
 	oldMetricValue.value += amount
-	c.metrics[key] = oldMetricValue
+	c.setMetric(key, oldMetricValue)
 }
 
 func (c *MetricCollection) Dec(metric Metric, labelValues []string, amount int) {
-	c.init()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	// todo handle error if not all values have been provided
-	// todo make it thread safe
 	key := buildKey(metric, labelValues)
-	oldMetricValue, ok := c.metrics[key]
+	oldMetricValue, ok := c.getMetric(key)
 	if !ok {
 		oldMetricValue = newMetricInstance(metric, labelValues)
 	}
 
 	oldMetricValue.value -= amount
-	c.metrics[key] = oldMetricValue
+	c.setMetric(key, oldMetricValue)
 }
 
 func (c *MetricCollection) Set(metric Metric, labelValues []string, amount int) {
-	c.init()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	// todo handle error if not all values have been provided
-	// todo make it thread safe
 	key := buildKey(metric, labelValues)
-	oldMetricValue, ok := c.metrics[key]
+	oldMetricValue, ok := c.getMetric(key)
 	if !ok {
 		oldMetricValue = newMetricInstance(metric, labelValues)
 	}
 
 	oldMetricValue.value = amount
-	c.metrics[key] = oldMetricValue
+	c.setMetric(key, oldMetricValue)
 }
 
 func newMetricInstance(metric Metric, labelValues []string) metricInstance {
@@ -89,8 +91,20 @@ func buildKey(metric Metric, values []string) string {
 	return builder.String()
 }
 
-func (c *MetricCollection) init() {
+func (c *MetricCollection) getMetric(key string) (metricInstance, bool) {
+	if c.metrics == nil {
+		return metricInstance{}, false
+	}
+
+	value, ok := c.metrics[key]
+
+	return value, ok
+}
+
+func (c *MetricCollection) setMetric(key string, value metricInstance) {
 	if c.metrics == nil {
 		c.metrics = make(map[string]metricInstance)
 	}
+
+	c.metrics[key] = value
 }
