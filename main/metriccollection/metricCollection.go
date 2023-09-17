@@ -174,7 +174,7 @@ func (e *MetricExporter) export() {
 				panic(err)
 			}
 		}
-		hadOutput = e.writeAllMetricsToOutput()
+		hadOutput = e.writeAllMetricsToOutput(time.Now().UnixMilli())
 
 		select {
 		case <-e.stopChanel:
@@ -189,12 +189,12 @@ func (e *MetricExporter) export() {
 	}
 }
 
-func (e *MetricExporter) writeAllMetricsToOutput() bool {
+func (e *MetricExporter) writeAllMetricsToOutput(currentTime int64) bool {
 	metrics := e.metricCollection.getAllMetrics()
 	hadOutput := false
 	for i, metric := range metrics {
 		hadOutput = true
-		e.writeMetricToOutput(metric)
+		e.writeMetricToOutput(metric, currentTime)
 		if i != len(metrics)-1 {
 			if _, err := fmt.Fprint(e.output, ","); err != nil {
 				panic(err)
@@ -205,10 +205,8 @@ func (e *MetricExporter) writeAllMetricsToOutput() bool {
 	return hadOutput
 }
 
-func (e *MetricExporter) writeMetricToOutput(metric metricInstance) {
-	// {metricName, labels..., value}
-
-	_, err := fmt.Fprintf(e.output, "{\"metricName\": \"%s\", \"value\": %d", metric.metricName, metric.value)
+func (e *MetricExporter) writeMetricToOutput(metric metricInstance, currentTime int64) {
+	_, err := fmt.Fprintf(e.output, "{\"time\": %d,\"metricName\": \"%s\", \"value\": %d", currentTime, metric.metricName, metric.value)
 	if err != nil {
 		panic(err)
 	}
