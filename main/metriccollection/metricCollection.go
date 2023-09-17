@@ -160,8 +160,6 @@ func (e *MetricExporter) export() {
 			return
 		default:
 			time.Sleep(time.Second)
-			continue
 		}
-
 	}
 }
