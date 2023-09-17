@@ -12,8 +12,13 @@ import (
 var errorLogger = log.New(os.Stderr, "", 0)
 
 func main() {
-
+	exporter, err := GetMetricExporter()
+	if err != nil {
+		panic(err)
+	}
+	exporter.StartExporting()
 	ListDirectoryRecursivelyParallel("/Users/pedjat/Documents")
+	exporter.FinishExporting()
 }
 
 func listDirWorker(dirsToProcess *unboundedqueue.UnboundedQueue, waitGroup *sync.WaitGroup, workerIndex int) {
