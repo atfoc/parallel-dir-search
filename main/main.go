@@ -12,7 +12,7 @@ import (
 var errorLogger = log.New(os.Stderr, "", 0)
 
 func main() {
-	exporter, err := GetMetricExporter()
+	exporter, err := GetMetricExporter("metric.json")
 	if err != nil {
 		panic(err)
 	}
