@@ -14,7 +14,7 @@
                             label: '{{.Label}}',
                             data: [
                                 {{range .Data}}
-                                {x: {{.X}}, y: {{.Y}}},
+                                {x: {{.X}}, y: {{if  eq .Y nil | not }}{{.Y}}{{else}}null{{end}}},
                                 {{end}}
                             ]
                         },
@@ -44,7 +44,7 @@
 <h1>Charts</h1>
 
 {{range .}}
-    <div style="width: 30%;">
+    <div style="width: 100%;">
         {{template "chart" .}}
     </div>
 {{end}}
