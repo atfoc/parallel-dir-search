@@ -113,6 +113,17 @@ func (c *MetricCollection) setMetric(key string, value metricInstance) {
 	c.metrics[key] = value
 }
 
+func (c *MetricCollection) getAllMetrics() []metricInstance {
+	result := make([]metricInstance, len(c.metrics))
+
+	i := 0
+	for _, value := range c.metrics {
+		result[i] = value
+	}
+
+	return result
+}
+
 type MetricExporter struct {
 	metricCollection *MetricCollection
 	output           io.WriteCloser
@@ -129,10 +140,17 @@ func NewMetricExporter(output io.WriteCloser, collection *MetricCollection) Metr
 	}
 }
 
-func (e *MetricExporter) StartExporting() {
+func (e *MetricExporter) StartExporting() error {
 	e.panicIfNotInit()
 
+	_, err := fmt.Fprint(e.output, "[")
+	if err != nil {
+		return err
+	}
+
 	go e.export()
+
+	return nil
 }
 
 func (e *MetricExporter) FinishExporting() {
@@ -148,18 +166,59 @@ func (e *MetricExporter) panicIfNotInit() {
 }
 
 func (e *MetricExporter) export() {
+	isFirstRun := true
 	for {
-		_, err := fmt.Fprintln(e.output, "cao")
-		if err != nil {
-			panic(err)
+		if !isFirstRun {
+			if _, err := fmt.Fprint(e.output, ","); err != nil {
+				panic(err)
+			}
+		} else {
+			isFirstRun = false
 		}
+		e.writeAllMetricsToOutput()
 
 		select {
 		case <-e.stopChanel:
 			close(e.doneChanel)
+			if _, err := fmt.Fprint(e.output, "]"); err != nil {
+				panic(err)
+			}
 			return
 		default:
 			time.Sleep(time.Second)
 		}
+	}
+}
+
+func (e *MetricExporter) writeAllMetricsToOutput() {
+	metrics := e.metricCollection.getAllMetrics()
+
+	for i, metric := range metrics {
+		e.writeMetricToOutput(metric)
+		if i != len(metrics)-1 {
+			if _, err := fmt.Fprint(e.output, ","); err != nil {
+				panic(err)
+			}
+		}
+	}
+}
+
+func (e *MetricExporter) writeMetricToOutput(metric metricInstance) {
+	// {metricName, labels..., value}
+
+	_, err := fmt.Fprintf(e.output, "{\"metricName\": \"%s\", \"value\": %d", metric.metricName, metric.value)
+	if err != nil {
+		panic(err)
+	}
+
+	for i, value := range metric.labelValues {
+		_, err := fmt.Fprintf(e.output, ",\"%s\": \"%s\"", metric.labels[i], value)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if _, err := fmt.Fprint(e.output, "}"); err != nil {
+		panic(err)
 	}
 }

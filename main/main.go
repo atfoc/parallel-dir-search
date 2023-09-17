@@ -16,7 +16,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	exporter.StartExporting()
+
+	if err = exporter.StartExporting(); err != nil {
+		panic(err)
+	}
+
 	ListDirectoryRecursivelyParallel("/Users/pedjat/Documents")
 	exporter.FinishExporting()
 }
