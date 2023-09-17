@@ -22,7 +22,7 @@ func ObserveDirProcessed(workerIndex int) {
 }
 
 func ObserveAddDirToQueue() {
-	metricCollection.Dec(dirToProcessQueueSize, nil, 1)
+	metricCollection.Inc(dirToProcessQueueSize, nil, 1)
 }
 
 func ObserveDirRemovedFromQueue() {

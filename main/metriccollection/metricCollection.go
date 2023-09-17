@@ -114,11 +114,12 @@ func (c *MetricCollection) setMetric(key string, value metricInstance) {
 }
 
 func (c *MetricCollection) getAllMetrics() []metricInstance {
-	result := make([]metricInstance, len(c.metrics))
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	result := make([]metricInstance, 0)
 
-	i := 0
 	for _, value := range c.metrics {
-		result[i] = value
+		result = append(result, value)
 	}
 
 	return result
@@ -166,16 +167,14 @@ func (e *MetricExporter) panicIfNotInit() {
 }
 
 func (e *MetricExporter) export() {
-	isFirstRun := true
+	hadOutput := false
 	for {
-		if !isFirstRun {
+		if hadOutput {
 			if _, err := fmt.Fprint(e.output, ","); err != nil {
 				panic(err)
 			}
-		} else {
-			isFirstRun = false
 		}
-		e.writeAllMetricsToOutput()
+		hadOutput = e.writeAllMetricsToOutput()
 
 		select {
 		case <-e.stopChanel:
@@ -190,10 +189,11 @@ func (e *MetricExporter) export() {
 	}
 }
 
-func (e *MetricExporter) writeAllMetricsToOutput() {
+func (e *MetricExporter) writeAllMetricsToOutput() bool {
 	metrics := e.metricCollection.getAllMetrics()
-
+	hadOutput := false
 	for i, metric := range metrics {
+		hadOutput = true
 		e.writeMetricToOutput(metric)
 		if i != len(metrics)-1 {
 			if _, err := fmt.Fprint(e.output, ","); err != nil {
@@ -201,6 +201,8 @@ func (e *MetricExporter) writeAllMetricsToOutput() {
 			}
 		}
 	}
+
+	return hadOutput
 }
 
 func (e *MetricExporter) writeMetricToOutput(metric metricInstance) {
