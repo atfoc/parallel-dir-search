@@ -1,0 +1,55 @@
+{{define "line-chart"}}
+    {{ $uuid := NewUUID }}
+
+    <canvas id="{{ $uuid }}"></canvas>
+    <script>
+        (function () {
+            const el = document.getElementById("{{ $uuid }}")
+            const chart = new Chart(el.getContext('2d'), {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {{range .Datasets}}
+                        {
+                            label: '{{.Label}}',
+                            data: [
+                                {{range .Data}}
+                                {x: {{.X}}, y: {{.Y}}},
+                                {{end}}
+                            ]
+                        },
+                        {{end}}
+                    ]
+                }
+            })
+        })()
+    </script>
+{{end}}
+
+{{define "chart"}}
+    {{if eq .GetChartType "line"}}
+        {{template "line-chart" .}}
+    {{end}}
+{{end}}
+
+<html>
+
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"
+            integrity="sha512-6HrPqAvK+lZElIZ4mZ64fyxIBTsaX5zAFZg2V/2WT+iKPrFzTzvx6QAsLW2OaLwobhMYBog/+bvmIEEGXi0p1w=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+<h1>Charts</h1>
+
+{{range .}}
+    <div style="width: 30%;">
+        {{template "chart" .}}
+    </div>
+{{end}}
+
+</body>
+
+
+</html>
