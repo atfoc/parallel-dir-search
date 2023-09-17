@@ -103,12 +103,14 @@ func GetCharts() []Chart {
 	//result := make(map[string]ChartDataset)
 	result := GetFirstChart(data)
 	result1 := GetSecondChart(data)
+	result2 := GetThirdChart(data)
 
 	//add(&result, processOneTime(lastTimeArray), fmt.Sprintf("%f", lastTime))
 
 	return []Chart{
 		&LineChart{Datasets: result.GetDatasets()},
 		&LineChart{Datasets: result1.GetDatasets()},
+		&LineChart{Datasets: result2.GetDatasets()},
 	}
 
 }
@@ -139,6 +141,32 @@ func GetSecondChart(data []any) DatasetCollection {
 	return result
 }
 
+func GetThirdChart(data []any) DatasetCollection {
+	result := NewDatasetCollection()
+	var lastTime float64
+	var lastTimeArray []map[string]any
+	var timesAdded int
+
+	for _, el := range data {
+		metric := el.(map[string]any)
+		if lastTime != metric["time"].(float64) {
+			timesAdded += 1
+			if timesAdded == 1 {
+				if len(lastTimeArray) != 0 {
+					result.Add(processOneTime2(lastTimeArray), lastTime)
+				}
+				lastTimeArray = make([]map[string]any, 0)
+				lastTime = metric["time"].(float64)
+				timesAdded = 0
+			}
+
+		}
+
+		lastTimeArray = append(lastTimeArray, metric)
+	}
+	return result
+}
+
 func GetFirstChart(data []any) DatasetCollection {
 	result := NewDatasetCollection()
 	var lastTime float64
@@ -149,7 +177,7 @@ func GetFirstChart(data []any) DatasetCollection {
 		metric := el.(map[string]any)
 		if lastTime != metric["time"].(float64) {
 			timesAdded += 1
-			if timesAdded == 2 {
+			if timesAdded == 50 {
 				if len(lastTimeArray) != 0 {
 					result.Add(processOneTime(lastTimeArray), lastTime)
 				}
@@ -178,7 +206,8 @@ func processOneTime(array []map[string]any) map[string]string {
 
 	for _, el := range array {
 		if el["metricName"] == "dir_processed_count" {
-			tmp[el["workerIndex"].(string)] = tmp[el["workerIndex"].(string)] + el["value"].(float64)
+			//tmp[el["workerIndex"].(string)] = tmp[el["workerIndex"].(string)] + el["value"].(float64)
+			tmp["rate"] = tmp["rate"] + el["value"].(float64)
 		}
 	}
 
@@ -196,6 +225,23 @@ func processOneTime1(array []map[string]any) map[string]string {
 	for _, el := range array {
 		if el["metricName"] == "dir_to_process_queue_size" {
 			tmp["size"] = math.Max(tmp["size"], el["value"].(float64))
+		}
+	}
+
+	result := make(map[string]string)
+	for key, el := range tmp {
+		result[key] = fmt.Sprintf("%f", el)
+	}
+
+	return result
+}
+
+func processOneTime2(array []map[string]any) map[string]string {
+	tmp := make(map[string]float64)
+
+	for _, el := range array {
+		if el["metricName"] == "dir_read_time" {
+			tmp["time"] = el["value"].(float64)
 		}
 	}
 

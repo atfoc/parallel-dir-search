@@ -184,7 +184,7 @@ func (e *MetricExporter) export() {
 			}
 			return
 		default:
-			time.Sleep(time.Second)
+			time.Sleep(time.Millisecond * 5)
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"time"
 )
 
 var errorLogger = log.New(os.Stderr, "", 0)
@@ -29,7 +30,9 @@ func listDirWorker(dirsToProcess *unboundedqueue.UnboundedQueue, waitGroup *sync
 	for {
 		dir := dirsToProcess.Pop()
 		ObserveDirRemovedFromQueue()
+		start := time.Now()
 		dirContents, err := os.ReadDir(dir)
+		ObserveReadDirTime(time.Now().Sub(start))
 		if err != nil {
 			errorLogger.Printf("Failed reading dir %s with error %s\n", dir, err.Error())
 			continue
