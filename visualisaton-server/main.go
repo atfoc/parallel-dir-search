@@ -116,32 +116,14 @@ func GetCharts() []Chart {
 }
 
 func GetSecondChart(data []any) DatasetCollection {
-	result := NewDatasetCollection()
-	var lastTime float64
-	var lastTimeArray []map[string]any
-	var timesAdded int
-
-	for _, el := range data {
-		metric := el.(map[string]any)
-		if lastTime != metric["time"].(float64) {
-			timesAdded += 1
-			if timesAdded == 1 {
-				if len(lastTimeArray) != 0 {
-					result.Add(processOneTime1(lastTimeArray), lastTime)
-				}
-				lastTimeArray = make([]map[string]any, 0)
-				lastTime = metric["time"].(float64)
-				timesAdded = 0
-			}
-
-		}
-
-		lastTimeArray = append(lastTimeArray, metric)
-	}
-	return result
+	return IterateOverData(data, 1, processOneTime1)
 }
 
 func GetThirdChart(data []any) DatasetCollection {
+	return IterateOverData(data, 1, processOneTime2)
+}
+
+func IterateOverData(data []any, amountOfTimes int, process func([]map[string]any) map[string]string) DatasetCollection {
 	result := NewDatasetCollection()
 	var lastTime float64
 	var lastTimeArray []map[string]any
@@ -151,9 +133,9 @@ func GetThirdChart(data []any) DatasetCollection {
 		metric := el.(map[string]any)
 		if lastTime != metric["time"].(float64) {
 			timesAdded += 1
-			if timesAdded == 1 {
+			if timesAdded == amountOfTimes {
 				if len(lastTimeArray) != 0 {
-					result.Add(processOneTime2(lastTimeArray), lastTime)
+					result.Add(process(lastTimeArray), lastTime)
 				}
 				lastTimeArray = make([]map[string]any, 0)
 				lastTime = metric["time"].(float64)
@@ -168,29 +150,7 @@ func GetThirdChart(data []any) DatasetCollection {
 }
 
 func GetFirstChart(data []any) DatasetCollection {
-	result := NewDatasetCollection()
-	var lastTime float64
-	var lastTimeArray []map[string]any
-	var timesAdded int
-
-	for _, el := range data {
-		metric := el.(map[string]any)
-		if lastTime != metric["time"].(float64) {
-			timesAdded += 1
-			if timesAdded == 50 {
-				if len(lastTimeArray) != 0 {
-					result.Add(processOneTime(lastTimeArray), lastTime)
-				}
-				lastTimeArray = make([]map[string]any, 0)
-				lastTime = metric["time"].(float64)
-				timesAdded = 0
-			}
-
-		}
-
-		lastTimeArray = append(lastTimeArray, metric)
-	}
-	return result
+	return IterateOverData(data, 50, processOneTime)
 }
 
 func NewDatasetCollection() DatasetCollection {
